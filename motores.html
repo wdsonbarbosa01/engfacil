@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dimensionamento de Componentes para Motores Trifásicos WEG</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { max-width: 400px; }
+        label { display: block; margin: 10px 0 5px; }
+        input, select { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        #resultado { margin-top: 20px; border: 1px solid #ddd; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Dimensionamento de Componentes para Motores Trifásicos WEG</h1>
+    <form id="formMotor">
+        <label for="potencia">Potência do Motor (HP):</label>
+        <input type="number" id="potencia" min="0.5" max="100" step="0.5" value="5" required>
+
+        <label for="tipoLigacao">Tipo de Ligação:</label>
+        <select id="tipoLigacao" required>
+            <option value="direta">Ligação Direta</option>
+            <option value="direta_reversao">Direta com Reversão</option>
+            <option value="estrela_triangulo">Estrela-Triângulo</option>
+            <option value="estrela_triangulo_reversao">Estrela-Triângulo com Reversão</option>
+        </select>
+
+        <button type="submit">Calcular Dimensionamento</button>
+    </form>
+
+    <div id="resultado" style="display: none;">
+        <h2>Resultados do Dimensionamento (Tensão: 380V, 50Hz)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Componente</th>
+                    <th>Recomendação</th>
+                    <th>Notas</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaResultados">
+                <!-- Preenchido via JS -->
+            </tbody>
+        </table>
+        <p><small>Valores aproximados baseados em catálogos WEG e normas gerais (IEC/NBR). Consulte o catálogo específico para exatidão. Eficiência assumida: 88%, FP: 0.85.</small></p>
+    </div>
+
+    <script>
+        // Tabela aproximada de Corrente de Plena Carga (FLA) em A para 380V
+        const tabelaFLA = {
+            0.5: 1.0, 1: 1.8, 1.5: 2.5, 2: 3.2, 3: 4.5, 5: 7.5,
+            7.5: 10.8, 10: 14, 15: 21, 20: 27, 25: 33, 30: 39,
+            40: 51, 50: 62, 60: 74, 75: 90, 100: 120
+        };
+
+        // Tabela aproximada para Disjuntor MPW (seleção baseada em FLA, rating em A)
+        function getDisjuntor(FLA) {
+            if (FLA <= 1.6) return 'MPW12 - 0.1-1.6A';
+            if (FLA <= 2.5) return 'MPW12 - 0.1-2.5A';
+            if (FLA <= 4) return 'MPW12 - 2.5-4A';
+            if (FLA <= 6.3) return 'MPW12 - 4-6.3A';
+            if (FLA <= 10) return 'MPW18 - 6-10A';
+            if (FLA <= 16) return 'MPW18 - 10-16A';
+            if (FLA <= 20) return 'MPW40 - 16-20A';
+            if (FLA <= 25) return 'MPW40 - 20-25A';
+            if (FLA <= 32) return 'MPW40 - 25-32A';
+            if (FLA <= 40) return 'MPW40 - 32-40A';
+            if (FLA <= 50) return 'MPW40 - 40-50A';
+            if (FLA <= 63) return 'MPW40 - 50-63A';
+            if (FLA <= 80) return 'MPW65 - 63-80A';
+            if (FLA <= 100) return 'MPW100 - 80-100A';
+            return 'Consultar modelo maior';
+        }
+
+        // Contator CWB (AC3 rating >= FLA para direta; para ET: main/delta >= FLA, star >= FLA/3)
+        function getContator(FLA, tipo) {
+            let rating = Math.ceil(FLA / 9) * 9; // Aproximação para frame
+            let modelo = `CWB ${rating}A AC3`;
+            if (tipo.includes('estrela')) {
+                let star = Math.ceil((FLA / 3) / 9) * 9;
+                return `Main/Delta: CWB ${rating}A; Estrela: CWB ${star}A`;
+            }
+            return modelo;
+        }
+
+        // Cabo (PVC 3 fases, 50m, queda 3%)
+        const tabelaCabo = {
+            1.5: '1.5 mm² (até 10A)', 2.5: '2.5 mm² (até 16A)', 4: '4 mm² (até 25A)',
+            6: '6 mm² (até 32A)', 10: '10 mm² (até 40A)', 16: '16 mm² (até 55A)',
+            25: '25 mm² (até 70A)', 35: '35 mm² (até 85A)', 50: '50 mm² (até 105A)',
+            70: '70 mm² (até 140A)'
+        };
+        function getCabo(FLA) {
+            let amp = FLA * 1.25; // Fator segurança
+            if (amp <= 10) return tabelaCabo[1.5];
+            if (amp <= 16) return tabelaCabo[2.5];
+            if (amp <= 25) return tabelaCabo[4];
+            if (amp <= 32) return tabelaCabo[6];
+            if (amp <= 40) return tabelaCabo[10];
+            if (amp <= 55) return tabelaCabo[16];
+            if (amp <= 70) return tabelaCabo[25];
+            if (amp <= 85) return tabelaCabo[35];
+            if (amp <= 105) return tabelaCabo[50];
+            return tabelaCabo[70] + ' ou maior';
+        }
+
+        document.getElementById('formMotor').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const hp = parseFloat(document.getElementById('potencia').value);
+            const tipo = document.getElementById('tipoLigacao').value;
+            const kw = hp * 0.746;
+            const FLA = tabelaFLA[hp] || (kw * 1000 / (Math.sqrt(3) * 380 * 0.85 * 0.88)); // Fórmula se não na tabela
+            const disjuntor = getDisjuntor(FLA);
+            const contator = getContator(FLA, tipo);
+            const cabo = getCabo(FLA);
+            const reversao = tipo.includes('reversao') ? ' (Inclui contator adicional para reversão)' : '';
+
+            const tbody = document.getElementById('tabelaResultados');
+            tbody.innerHTML = `
+                <tr><td>Potência</td><td>${hp} HP (${kw.toFixed(1)} kW)</td><td>FLA: ${FLA.toFixed(1)} A</td></tr>
+                <tr><td>Disjuntor (MPW)</td><td>${disjuntor}</td><td>Proteção contra sobrecarga e curto</td></tr>
+                <tr><td>Contator (CWB)</td><td>${contator}${reversao}</td><td>Para partida ${tipo.replace('_', ' ')}</td></tr>
+                <tr><td>Cabo de Energia</td><td>${cabo}</td><td>3 fases + terra, PVC isolado</td></tr>
+            `;
+
+            document.getElementById('resultado').style.display = 'block';
+        });
+    </script>
+</body>
+</html>
