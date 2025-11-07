@@ -189,10 +189,14 @@
 
             // --- Tabela Comando ---
             const tbodyComando = document.getElementById('tabelaComando');
-            const totalBotoeiras = mat.botoeiras + 1; // +1 emergência
+            const totalBotoeirasComando = mat.botoeiras; // Quantidade de botões liga/desliga (sem retenção)
+            const temReversao = tipo.includes('reversao');
+            const temEstrela = tipo.includes('estrela');
+
             tbodyComando.innerHTML = `
                 <tr><td>Botoeira de Emergência</td><td>Com retenção (vermelha)</td><td>1</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${custoBotoeira.toFixed(2)}</td></tr>
-                <tr><td>Botoeiras de Comando</td><td>Liga/Desliga</td><td>${mat.botoeiras}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * mat.botoeiras).toFixed(2)}</td></tr>
+                <tr><td>Botoeira Liga (NA)</td><td>Sem retenção (verde)</td><td>${totalBotoeirasComando}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * totalBotoeirasComando).toFixed(2)}</td></tr>
+                <tr><td>Botoeira Desliga (NF)</td><td>Sem retenção (vermelha)</td><td>1</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${custoBotoeira.toFixed(2)}</td></tr>
                 <tr><td>Sinalizações</td><td>LED 24V</td><td>${mat.sinalizacoes}</td><td>R$ ${custoSinalizacao.toFixed(2)}</td><td>R$ ${(custoSinalizacao * mat.sinalizacoes).toFixed(2)}</td></tr>
                 <tr><td>Relé Térmico</td><td>Ajuste ${FLA.toFixed(1)}A</td><td>1</td><td>R$ ${custoReleTermico.toFixed(2)}</td><td>R$ ${custoReleTermico.toFixed(2)}</td></tr>
                 <tr><td>Disjuntor de Comando</td><td>${tensao === 380 ? 'Bifásico 2P' : 'Monofásico 1P'} 2A</td><td>1</td><td>R$ ${custoDisjComando.toFixed(2)}</td><td>R$ ${custoDisjComando.toFixed(2)}</td></tr>
