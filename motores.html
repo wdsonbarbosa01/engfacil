@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dimensionamento de Componentes para Motores Trifásicos WEG EM UM MINUTO</title>
+    <title>Dimensionamento de Componentes para Motores Trifásicos WEG EM 1 MINUTO</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         form { max-width: 400px; }
@@ -11,13 +11,12 @@
         input, select { width: 100%; padding: 8px; margin-bottom: 10px; }
         button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
         #resultado { margin-top: 20px; border: 1px solid #ddd; padding: 15px; }
-        table { width: 100%; border-collapse: collapse; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
+        .cabo-aviso { color: #d32f2f; font-weight: bold; }
     </style>
 </head>
-<!-- Substitua o <body> original pelo código abaixo -->
-
 <body>
     <h1>Dimensionamento de Componentes para Motores Trifásicos WEG <span style="color: red;">EM 1 MINUTO</span></h1>
     <form id="formMotor">
@@ -46,24 +45,36 @@
         <h2>Resultados do Dimensionamento</h2>
         <p><strong>Tensão:</strong> <span id="tensaoSelecionada"></span>V | <strong>FLA:</strong> <span id="flaValor"></span> A</p>
 
-        <h3>Componentes Elétricos</h3>
+        <h3>Componentes de Força</h3>
         <table>
             <thead>
                 <tr>
                     <th>Componente</th>
-                    <th>Recomendação</th>
+                    <th>Especificação</th>
                     <th>Quantidade</th>
+                    <th>Custo Unit. (R$)</th>
+                    <th>Total (R$)</th>
                 </tr>
             </thead>
-            <tbody id="tabelaComponentes">
-                <!-- Preenchido via JS -->
-            </tbody>
+            <tbody id="tabelaForca"></tbody>
         </table>
 
-        <h3>Lista de Materiais (Comando)</h3>
-        <ul id="listaMateriais">
-            <!-- Preenchido via JS -->
-        </ul>
+        <h3>Componentes de Comando</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Componente</th>
+                    <th>Especificação</th>
+                    <th>Quantidade</th>
+                    <th>Custo Unit. (R$)</th>
+                    <th>Total (R$)</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaComando"></tbody>
+        </table>
+
+        <h3>Sinalizações de Estado</h3>
+        <ul id="listaSinalizacoes"></ul>
 
         <h3>Diagrama de Ligação</h3>
         <img id="diagramaImg" src="" alt="Diagrama de ligação" style="max-width: 100%; border: 1px solid #ccc; margin-top: 10px;">
@@ -71,126 +82,132 @@
     </div>
 
     <script>
-        // Tabelas de FLA por tensão (aproximadas - base WEG 380V, ajustadas por fator)
+        // --- Dados de Corrente (FLA) base 380V ---
         const baseFLA380 = {
             0.5: 1.0, 1: 1.8, 1.5: 2.5, 2: 3.2, 3: 4.5, 5: 7.5,
             7.5: 10.8, 10: 14, 15: 21, 20: 27, 25: 33, 30: 39,
             40: 51, 50: 62, 60: 74, 75: 90, 100: 120
         };
 
-        // Fatores de correção de corrente por tensão (I ∝ 1/V)
         const fatorTensao = { 127: 380/127, 220: 380/220, 380: 1 };
 
-        // Disjuntor MPW
-        function getDisjuntor(FLA) {
-            if (FLA <= 1.6) return 'MPW12 - 0.1-1.6A';
-            if (FLA <= 2.5) return 'MPW12 - 0.1-2.5A';
-            if (FLA <= 4) return 'MPW12 - 2.5-4A';
-            if (FLA <= 6.3) return 'MPW12 - 4-6.3A';
-            if (FLA <= 10) return 'MPW18 - 6-10A';
-            if (FLA <= 16) return 'MPW18 - 10-16A';
-            if (FLA <= 25) return 'MPW40 - 16-25A';
-            if (FLA <= 32) return 'MPW40 - 25-32A';
-            if (FLA <= 40) return 'MPW40 - 32-40A';
-            if (FLA <= 63) return 'MPW65 - 40-63A';
-            if (FLA <= 100) return 'MPW100 - 63-100A';
-            return 'Consultar WEG';
+        // --- Valores comerciais (WEG) ---
+        const disjuntores = {
+            1.6: 'MPW12 0.1-1.6A', 2.5: 'MPW12 0.1-2.5A', 4: 'MPW12 2.5-4A',
+            6.3: 'MPW12 4-6.3A', 10: 'MPW18 6-10A', 16: 'MPW18 10-16A',
+            25: 'MPW40 16-25A', 32: 'MPW40 25-32A', 40: 'MPW40 32-40A',
+            63: 'MPW65 40-63A', 100: 'MPW100 63-100A'
+        };
+        const custoDisjuntor = { 1.6: 120, 2.5: 125, 4: 130, 6.3: 135, 10: 180, 16: 195, 25: 280, 32: 300, 40: 320, 63: 480, 100: 720 };
+
+        const contatores = { 9: 'CWB9', 12: 'CWB12', 18: 'CWB18', 25: 'CWB25', 32: 'CWB32', 40: 'CWB40', 50: 'CWB50', 65: 'CWB65', 80: 'CWB80', 95: 'CWB95', 110: 'CWB110' };
+        const custoContator = { 9: 180, 12: 195, 18: 220, 25: 280, 32: 320, 40: 380, 50: 450, 65: 580, 80: 720, 95: 850, 110: 980 };
+
+        const cabos = { 1.5: '1,5 mm²', 2.5: '2,5 mm²', 4: '4 mm²', 6: '6 mm²', 10: '10 mm²', 16: '16 mm²', 25: '25 mm²', 35: '35 mm²' };
+        const custoCabo = { 1.5: 2.5, 2.5: 3.8, 4: 5.9, 6: 8.2, 10: 13.5, 16: 21.0, 25: 33.0, 35: 45.0 };
+
+        const custoBotoeira = 45;
+        const custoSinalizacao = 25;
+        const custoReleTermico = 120;
+        const custoDisjuntorComando = { 127: 80, 220: 80, 380: 90 }; // Bifásico em 380V
+
+        // --- Funções de seleção ---
+        function getDisjuntorComercial(FLA) {
+            const valores = Object.keys(disjuntores).map(Number).sort((a,b)=>a-b);
+            for (let i of valores) if (FLA <= i) return { valor: i, modelo: disjuntores[i], custo: custoDisjuntor[i] };
+            return { valor: 100, modelo: disjuntores[100], custo: custoDisjuntor[100] };
         }
 
-        // Contator CWB
-        function getContator(FLA) {
+        function getContatorComercial(FLA) {
             const rating = Math.ceil(FLA / 9) * 9;
-            return `CWB${rating} (AC-3 ≥ ${rating}A)`;
+            const modelo = contatores[rating] || contatores[110];
+            const custo = custoContator[rating] || custoContator[110];
+            return { rating, modelo, custo };
         }
 
-        // Cabo
-        function getCabo(FLA) {
+        function getCaboComercial(FLA) {
             const amp = FLA * 1.25;
-            if (amp <= 16) return '1,5 mm²';
-            if (amp <= 21) return '2,5 mm²';
-            if (amp <= 28) return '4 mm²';
-            if (amp <= 36) return '6 mm²';
-            if (amp <= 47) return '10 mm²';
-            if (amp <= 62) return '16 mm²';
-            if (amp <= 80) return '25 mm²';
-            return '35 mm² ou maior';
+            let mm2 = 1.5;
+            if (amp > 16) mm2 = 2.5;
+            if (amp > 21) mm2 = 4;
+            if (amp > 28) mm2 = 6;
+            if (amp > 36) mm2 = 10;
+            if (amp > 47) mm2 = 16;
+            if (amp > 62) mm2 = 25;
+            if (amp > 80) mm2 = 35;
+            const aviso = mm2 < 2.5 ? ' <span class="cabo-aviso">(Norma: mínimo 2,5 mm² para força)</span>' : '';
+            return { mm2, modelo: cabos[mm2], custo: custoCabo[mm2], aviso };
         }
 
-        // Lista de materiais por tipo
+        // --- Materiais por tipo ---
         const materiais = {
-            direta: {
-                contatores: 1,
-                botoeiras: '1 botão liga (verde)',
-                sinalizacao: '1 LED verde (ligado)',
-                reversao: false
-            },
-            direta_reversao: {
-                contatores: 2,
-                botoeiras: '1 botão liga sentido 1, 1 botão liga sentido 2, 1 botão desliga',
-                sinalizacao: '2 LEDs (sentido 1 e 2)',
-                reversao: true
-            },
-            estrela_triangulo: {
-                contatores: 3,
-                botoeiras: '1 botão partida, 1 botão desliga',
-                sinalizacao: '1 LED verde (ligado), 1 LED amarelo (estrela)',
-                reversao: false
-            },
-            estrela_triangulo_reversao: {
-                contatores: 6,
-                botoeiras: '2 botões partida (sentido 1 e 2), 1 botão desliga',
-                sinalizacao: '3 LEDs (sentido 1, sentido 2, estrela)',
-                reversao: true
-            }
+            direta: { contatores: 1, sinalizacoes: 1, botoeiras: 1 },
+            direta_reversao: { contatores: 2, sinalizacoes: 2, botoeiras: 3 },
+            estrela_triangulo: { contatores: 3, sinalizacoes: 2, botoeiras: 2 },
+            estrela_triangulo_reversao: { contatores: 6, sinalizacoes: 3, botoeiras: 3 }
         };
 
-        // Diagramas (use imagens reais ou placeholders)
+        const descSinalizacao = {
+            direta: ['Motor ligado'],
+            direta_reversao: ['Sentido 1', 'Sentido 2'],
+            estrela_triangulo: ['Em estrela', 'Em triângulo'],
+            estrela_triangulo_reversao: ['Estrela', 'Triângulo sentido 1', 'Triângulo sentido 2']
+        };
+
+        // --- Diagramas ---
         const diagramas = {
             direta: 'https://wdsonbarbosa01.github.io/engfacil/PARTIDA%20DIRETA.png',
-            direta_reversao: 'https://i.imgur.com/XyZ1234.png',
-            estrela_triangulo: 'https://wdsonbarbosa01.github.io/engfacil/fechamento-PYD-600x406.png',
-            estrela_triangulo_reversao: 'https://i.imgur.com/987XyZ1.png'
+            direta_reversao: 'https://via.placeholder.com/600x400?text=Direta+com+Revers%C3%A3o',
+            estrela_triangulo: 'https://via.placeholder.com/600x400?text=Estrela-Tri%C3%A2ngulo',
+            estrela_triangulo_reversao: 'https://via.placeholder.com/600x400?text=Estrela-Tri%C3%A2ngulo+com+Revers%C3%A3o'
         };
 
+        // --- Cálculo ---
         document.getElementById('formMotor').addEventListener('submit', function(e) {
             e.preventDefault();
+
             const hp = parseFloat(document.getElementById('potencia').value);
             const tensao = parseInt(document.getElementById('tensao').value);
             const tipo = document.getElementById('tipoLigacao').value;
 
-            const flaBase = baseFLA380[hp] || (hp * 0.746 * 1000 / (Math.sqrt(3) * 380 * 0.85 * 0.88));
+            const flaBase = baseFLA380[hp] || (hp * 0.746 * 1000) / (Math.sqrt(3) * 380 * 0.85 * 0.88);
             const FLA = flaBase * fatorTensao[tensao];
             const mat = materiais[tipo];
 
-            // Componentes
-            const disjuntor = getDisjuntor(FLA);
-            const contator = getContator(FLA);
-            const cabo = getCabo(FLA);
+            const disj = getDisjuntorComercial(FLA);
+            const cont = getContatorComercial(FLA);
+            const cabo = getCaboComercial(FLA);
+            const custoDisjComando = tensao === 380 ? custoDisjuntorComando[380] : custoDisjuntorComando[tensao];
 
-            // Preenche tabela
-            const tbody = document.getElementById('tabelaComponentes');
-            tbody.innerHTML = `
-                <tr><td>Disjuntor Termomagnético</td><td>${disjuntor}</td><td>1</td></tr>
-                <tr><td>Contator Principal</td><td>${contator}</td><td>${tipo.includes('estrela') ? '3' : (mat.contatores)}</td></tr>
-                <tr><td>Cabo de Alimentação</td><td>${cabo}</td><td>3F + T</td></tr>
+            // --- Tabela Força ---
+            const tbodyForca = document.getElementById('tabelaForca');
+            tbodyForca.innerHTML = `
+                <tr><td>Disjuntor Motor</td><td>${disj.modelo}</td><td>1</td><td>R$ ${disj.custo.toFixed(2)}</td><td>R$ ${disj.custo.toFixed(2)}</td></tr>
+                <tr><td>Contator</td><td>${cont.modelo} (AC-3 ≥ ${cont.rating}A)</td><td>${tipo.includes('estrela') ? 3 : mat.contatores}</td><td>R$ ${cont.custo.toFixed(2)}</td><td>R$ ${(cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores)).toFixed(2)}</td></tr>
+                <tr><td>Cabo de Força</td><td>${cabo.modelo}${cabo.aviso}</td><td>3F + T</td><td>R$ ${cabo.custo.toFixed(2)}/m</td><td>—</td></tr>
             `;
 
-            // Lista de materiais
-            const lista = document.getElementById('listaMateriais');
-            lista.innerHTML = `
-                <li><strong>Contator(es):</strong> ${mat.contatores} unid. ${contator}</li>
-                <li><strong>Botoeiras:</strong> ${mat.botoeiras}</li>
-                <li><strong>Sinalização:</strong> ${mat.sinalizacao}</li>
-                <li><strong>Relé Térmico:</strong> 1 unid. (ajustar para ${FLA.toFixed(1)}A)</li>
-                <li><strong>Disjuntor:</strong> 1 unid. ${disjuntor}</li>
-                ${mat.reversao ? '<li><strong>Intertravamento elétrico e mecânico</strong> entre contatores</li>' : ''}
+            // --- Tabela Comando ---
+            const tbodyComando = document.getElementById('tabelaComando');
+            const totalBotoeiras = mat.botoeiras + 1; // +1 emergência
+            tbodyComando.innerHTML = `
+                <tr><td>Botoeira de Emergência</td><td>Com retenção (vermelha)</td><td>1</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${custoBotoeira.toFixed(2)}</td></tr>
+                <tr><td>Botoeiras de Comando</td><td>Liga/Desliga</td><td>${mat.botoeiras}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * mat.botoeiras).toFixed(2)}</td></tr>
+                <tr><td>Sinalizações</td><td>LED 24V</td><td>${mat.sinalizacoes}</td><td>R$ ${custoSinalizacao.toFixed(2)}</td><td>R$ ${(custoSinalizacao * mat.sinalizacoes).toFixed(2)}</td></tr>
+                <tr><td>Relé Térmico</td><td>Ajuste ${FLA.toFixed(1)}A</td><td>1</td><td>R$ ${custoReleTermico.toFixed(2)}</td><td>R$ ${custoReleTermico.toFixed(2)}</td></tr>
+                <tr><td>Disjuntor de Comando</td><td>${tensao === 380 ? 'Bifásico 2P' : 'Monofásico 1P'} 2A</td><td>1</td><td>R$ ${custoDisjComando.toFixed(2)}</td><td>R$ ${custoDisjComando.toFixed(2)}</td></tr>
             `;
 
-            // Diagrama
+            // --- Sinalizações ---
+            const listaSig = document.getElementById('listaSinalizacoes');
+            listaSig.innerHTML = descSinalizacao[tipo].map(s => `<li>${s}</li>`).join('');
+
+            // --- Diagrama ---
             document.getElementById('diagramaImg').src = diagramas[tipo] || 'https://via.placeholder.com/600x400?text=Diagrama+Indispon%C3%ADvel';
+
+            // --- Info ---
             document.getElementById('tensaoSelecionada').textContent = tensao;
             document.getElementById('flaValor').textContent = FLA.toFixed(1);
-
             document.getElementById('resultado').style.display = 'block';
         });
     </script>
