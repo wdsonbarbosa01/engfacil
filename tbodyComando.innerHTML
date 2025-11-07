@@ -207,6 +207,47 @@
                 <tr><td>Disjuntor de Comando</td><td>${tensao === 380 ? 'Bifásico 2P' : 'Monofásico 1P'} 2A</td><td>1</td><td>R$ ${custoDisjComando.toFixed(2)}</td><td>R$ ${custoDisjComando.toFixed(2)}</td></tr>
             `;
 
+            // --- CÁLCULO DO TOTAL GERAL ---
+            const totalForca = 
+                disj.custo + 
+                (cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores));
+
+            const totalComando = 
+                (custoBotoeira * qtdEmergencia) + 
+                (custoBotoeira * qtdBotoeiraLiga) + 
+                (custoBotoeira * qtdBotoeiraDesliga) + 
+                (custoSinalizacao * mat.sinalizacoes) + 
+                custoReleTermico + 
+                custoDisjComando;
+
+            const totalGeral = totalForca + totalComando;
+
+            // Adiciona linha de total no final de cada tabela
+            tbodyForca.innerHTML += `
+                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                    <td colspan="3">SUBTOTAL FORÇA</td>
+                    <td colspan="2">R$ ${totalForca.toFixed(2)}</td>
+                </tr>
+            `;
+
+            tbodyComando.innerHTML += `
+                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                    <td colspan="3">SUBTOTAL COMANDO</td>
+                    <td colspan="2">R$ ${totalComando.toFixed(2)}</td>
+                </tr>
+            `;
+
+            // Adiciona total geral abaixo das tabelas
+            const resultadoDiv = document.getElementById('resultado');
+            let totalGeralEl = document.getElementById('totalGeral');
+            if (!totalGeralEl) {
+                totalGeralEl = document.createElement('div');
+                totalGeralEl.id = 'totalGeral';
+                totalGeralEl.style = 'margin-top: 20px; padding: 15px; background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 5px; font-size: 1.2em; text-align: right;';
+                resultadoDiv.appendChild(totalGeralEl);
+            }
+            totalGeralEl.innerHTML = `<strong>TOTAL GERAL DO PAINEL: R$ ${totalGeral.toFixed(2)}</strong>`;
+
             // --- Sinalizações ---
             const listaSig = document.getElementById('listaSinalizacoes');
             listaSig.innerHTML = descSinalizacao[tipo].map(s => `<li>${s}</li>`).join('');
