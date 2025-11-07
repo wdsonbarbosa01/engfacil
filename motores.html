@@ -15,6 +15,7 @@
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
         .cabo-aviso { color: #d32f2f; font-weight: bold; }
+        .total-section { margin: 25px 0; padding: 15px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; font-size: 1.3em; text-align: center; font-weight: bold; color: #e65100; }
     </style>
 </head>
 <body>
@@ -73,16 +74,18 @@
             <tbody id="tabelaComando"></tbody>
         </table>
 
+        <div id="totalGeral" class="total-section"></div>
+
         <h3>Sinalizações de Estado</h3>
         <ul id="listaSinalizacoes"></ul>
 
         <h3>Diagrama de Ligação</h3>
         <img id="diagramaImg" src="" alt="Diagrama de ligação" style="max-width: 100%; border: 1px solid #ccc; margin-top: 10px;">
-        <p><small>Valores baseados em catálogos WEG. Consulte manual oficial para aplicação exata.</small></p>
+        <p><small>Valores baseados em catálogos WEG para especificações de motores. Preços de componentes baseados em médias de mercado brasileiro (2025). Consulte manual oficial para aplicação exata.</small></p>
     </div>
 
     <script>
-        // --- Dados de Corrente (FLA) base 380V ---
+        // --- Dados de Corrente (FLA) base 380V - Referência WEG ---
         const baseFLA380 = {
             0.5: 1.0, 1: 1.8, 1.5: 2.5, 2: 3.2, 3: 4.5, 5: 7.5,
             7.5: 10.8, 10: 14, 15: 21, 20: 27, 25: 33, 30: 39,
@@ -91,43 +94,56 @@
 
         const fatorTensao = { 127: 380/127, 220: 380/220, 380: 1 };
 
-        // --- Valores comerciais (WEG) ---
+        // --- Amperagens comerciais Disjuntores (mercado BR) ---
+        const ampsDisjComerciais = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125];
         const disjuntores = {
-            1.6: 'MPW12 0.1-1.6A', 2.5: 'MPW12 0.1-2.5A', 4: 'MPW12 2.5-4A',
-            6.3: 'MPW12 4-6.3A', 10: 'MPW18 6-10A', 16: 'MPW18 10-16A',
-            25: 'MPW40 16-25A', 32: 'MPW40 25-32A', 40: 'MPW40 32-40A',
-            63: 'MPW65 40-63A', 100: 'MPW100 63-100A'
+            6: 'MPW 6A', 10: 'MPW 10A', 16: 'MPW 16A', 20: 'MPW 20A', 25: 'MPW 25A',
+            32: 'MPW 32A', 40: 'MPW 40A', 50: 'MPW 50A', 63: 'MPW 63A', 80: 'MPW 80A',
+            100: 'MPW 100A', 125: 'MPW 125A'
         };
-        const custoDisjuntor = { 1.6: 120, 2.5: 125, 4: 130, 6.3: 135, 10: 180, 16: 195, 25: 280, 32: 300, 40: 320, 63: 480, 100: 720 };
+        // Preços médios mercado BR 2025 (R$) - Ajustados de fontes como Mercado Livre, ViewTech
+        const custoDisjuntor = { 
+            6: 150, 10: 180, 16: 200, 20: 220, 25: 250, 32: 280, 40: 320, 
+            50: 400, 63: 450, 80: 550, 100: 650, 125: 750 
+        };
 
-        const contatores = { 9: 'CWB9', 12: 'CWB12', 18: 'CWB18', 25: 'CWB25', 32: 'CWB32', 40: 'CWB40', 50: 'CWB50', 65: 'CWB65', 80: 'CWB80', 95: 'CWB95', 110: 'CWB110' };
-        const custoContator = { 9: 180, 12: 195, 18: 220, 25: 280, 32: 320, 40: 380, 50: 450, 65: 580, 80: 720, 95: 850, 110: 980 };
+        // --- Amperagens comerciais Contatores WEG ---
+        const ampsContComerciais = [9, 12, 18, 25, 32, 40, 50, 65, 80, 95, 110];
+        const contatores = { 
+            9: 'CWB 9A', 12: 'CWB 12A', 18: 'CWB 18A', 25: 'CWB 25A', 32: 'CWB 32A', 
+            40: 'CWB 40A', 50: 'CWB 50A', 65: 'CWB 65A', 80: 'CWB 80A', 95: 'CWB 95A', 110: 'CWB 110A' 
+        };
+        // Preços médios mercado BR 2025 (R$) - Ajustados de Condufio, ALR
+        const custoContator = { 
+            9: 120, 12: 140, 18: 170, 25: 220, 32: 280, 40: 350, 50: 420, 65: 550, 80: 650, 95: 750, 110: 850 
+        };
 
+        // --- Cabos (mercado BR) ---
         const cabos = { 1.5: '1,5 mm²', 2.5: '2,5 mm²', 4: '4 mm²', 6: '6 mm²', 10: '10 mm²', 16: '16 mm²', 25: '25 mm²', 35: '35 mm²' };
-        const custoCabo = { 1.5: 2.5, 2.5: 3.8, 4: 5.9, 6: 8.2, 10: 13.5, 16: 21.0, 25: 33.0, 35: 45.0 };
+        // Preços médios por metro 2025 (R$) - Ajustados de Eletrica Bahiana, Andra
+        const custoCabo = { 1.5: 1.57, 2.5: 2.19, 4: 4.06, 6: 6.63, 10: 10.00, 16: 18.62, 25: 25.00, 35: 35.00 };
 
-        const custoBotoeira = 45;
-        const custoSinalizacao = 25;
-        const custoReleTermico = 120;
-        const custoDisjuntorComando = { 127: 80, 220: 80, 380: 90 }; // Bifásico em 380V
+        // --- Outros custos (mercado BR) ---
+        const custoBotoeira = 45; // Botoeira 22mm sem retenção (Mercado Livre)
+        const custoSinalizacao = 25; // LED 24V (ON Eletrica, BHS)
+        const custoReleTermico = 150; // Relé RW médio (ViewTech, ILG)
+        const custoDisjuntorComando = { 127: 50, 220: 50, 380: 60 }; // Auxiliar 1P/2P 2A (Loja Eletrica)
 
-        // --- Funções de seleção ---
+        // --- Funções de seleção comercial ---
         function getDisjuntorComercial(FLA) {
-            const valores = Object.keys(disjuntores).map(Number).sort((a,b)=>a-b);
-            for (let i of valores) if (FLA <= i) return { valor: i, modelo: disjuntores[i], custo: custoDisjuntor[i] };
-            return { valor: 100, modelo: disjuntores[100], custo: custoDisjuntor[100] };
+            const ampNecessaria = FLA * 1.25; // Fator para motor
+            const ampEscolhida = ampsDisjComerciais.find(amp => amp >= ampNecessaria) || 125;
+            return { valor: ampEscolhida, modelo: disjuntores[ampEscolhida], custo: custoDisjuntor[ampEscolhida] };
         }
 
         function getContatorComercial(FLA) {
-            const rating = Math.ceil(FLA / 9) * 9;
-            const modelo = contatores[rating] || contatores[110];
-            const custo = custoContator[rating] || custoContator[110];
-            return { rating, modelo, custo };
+            const ampEscolhida = ampsContComerciais.find(amp => amp >= FLA) || 110;
+            return { valor: ampEscolhida, modelo: contatores[ampEscolhida], custo: custoContator[ampEscolhida] };
         }
 
         function getCaboComercial(FLA) {
             const amp = FLA * 1.25;
-            let mm2 = 1.5;
+            let mm2 = 2.5; // Mínimo por norma
             if (amp > 16) mm2 = 2.5;
             if (amp > 21) mm2 = 4;
             if (amp > 28) mm2 = 6;
@@ -141,10 +157,10 @@
 
         // --- Materiais por tipo ---
         const materiais = {
-            direta: { contatores: 1, sinalizacoes: 1, botoeiras: 1 },
-            direta_reversao: { contatores: 2, sinalizacoes: 2, botoeiras: 3 },
-            estrela_triangulo: { contatores: 3, sinalizacoes: 2, botoeiras: 2 },
-            estrela_triangulo_reversao: { contatores: 6, sinalizacoes: 3, botoeiras: 3 }
+            direta: { contatores: 1, sinalizacoes: 1, botoeirasLiga: 1 },
+            direta_reversao: { contatores: 2, sinalizacoes: 2, botoeirasLiga: 2 },
+            estrela_triangulo: { contatores: 3, sinalizacoes: 2, botoeirasLiga: 1 },
+            estrela_triangulo_reversao: { contatores: 6, sinalizacoes: 3, botoeirasLiga: 2 }
         };
 
         const descSinalizacao = {
@@ -177,76 +193,52 @@
             const disj = getDisjuntorComercial(FLA);
             const cont = getContatorComercial(FLA);
             const cabo = getCaboComercial(FLA);
-            const custoDisjComando = tensao === 380 ? custoDisjuntorComando[380] : custoDisjuntorComando[tensao];
+            const custoDisjComando = custoDisjuntorComando[tensao] || 60;
+
+            // Quantidade botões liga
+            let qtdBotoeiraLiga = mat.botoeirasLiga;
+            const qtdBotoeiraDesliga = 1;
+            const qtdEmergencia = 1;
 
             // --- Tabela Força ---
             const tbodyForca = document.getElementById('tabelaForca');
             tbodyForca.innerHTML = `
-                <tr><td>Disjuntor Motor</td><td>${disj.modelo}</td><td>1</td><td>R$ ${disj.custo.toFixed(2)}</td><td>R$ ${disj.custo.toFixed(2)}</td></tr>
-                <tr><td>Contator</td><td>${cont.modelo} (AC-3 ≥ ${cont.rating}A)</td><td>${tipo.includes('estrela') ? 3 : mat.contatores}</td><td>R$ ${cont.custo.toFixed(2)}</td><td>R$ ${(cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores)).toFixed(2)}</td></tr>
+                <tr><td>Disjuntor Motor</td><td>${disj.modelo} (Tripolar)</td><td>1</td><td>R$ ${disj.custo.toFixed(2)}</td><td>R$ ${disj.custo.toFixed(2)}</td></tr>
+                <tr><td>Contator</td><td>${cont.modelo} (AC-3 ${cont.valor}A)</td><td>${tipo.includes('estrela') ? 3 : mat.contatores}</td><td>R$ ${cont.custo.toFixed(2)}</td><td>R$ ${(cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores)).toFixed(2)}</td></tr>
                 <tr><td>Cabo de Força</td><td>${cabo.modelo}${cabo.aviso}</td><td>3F + T</td><td>R$ ${cabo.custo.toFixed(2)}/m</td><td>—</td></tr>
             `;
 
             // --- Tabela Comando ---
             const tbodyComando = document.getElementById('tabelaComando');
-
-            // Quantidade correta de botões LIGA (NA) por tipo de ligação
-            let qtdBotoeiraLiga = 1; // padrão: 1 botão liga
-            if (tipo === 'direta_reversao') qtdBotoeiraLiga = 2; // 2 sentidos
-            if (tipo.includes('estrela')) qtdBotoeiraLiga = 1; // estrela-triângulo: só 1 partida
-
-            const qtdBotoeiraDesliga = 1; // sempre 1 desliga
-            const qtdEmergencia = 1;
-
             tbodyComando.innerHTML = `
                 <tr><td>Botoeira de Emergência</td><td>Com retenção (vermelha)</td><td>${qtdEmergencia}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * qtdEmergencia).toFixed(2)}</td></tr>
                 <tr><td>Botoeira Liga (NA)</td><td>Sem retenção (verde)</td><td>${qtdBotoeiraLiga}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * qtdBotoeiraLiga).toFixed(2)}</td></tr>
-                <tr><td>Botoeira Desliga (NF)</td><td>Sem retenção (vermelha)</td><td>${qtdBotoeiraDesliga}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${custoBotoeira.toFixed(2)}</td></tr>
+                <tr><td>Botoeira Desliga (NF)</td><td>Sem retenção (vermelha)</td><td>${qtdBotoeiraDesliga}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * qtdBotoeiraDesliga).toFixed(2)}</td></tr>
                 <tr><td>Sinalizações</td><td>LED 24V</td><td>${mat.sinalizacoes}</td><td>R$ ${custoSinalizacao.toFixed(2)}</td><td>R$ ${(custoSinalizacao * mat.sinalizacoes).toFixed(2)}</td></tr>
-                <tr><td>Relé Térmico</td><td>Ajuste ${FLA.toFixed(1)}A</td><td>1</td><td>R$ ${custoReleTermico.toFixed(2)}</td><td>R$ ${custoReleTermico.toFixed(2)}</td></tr>
+                <tr><td>Relé Térmico</td><td>RW Ajuste ${FLA.toFixed(1)}A</td><td>1</td><td>R$ ${custoReleTermico.toFixed(2)}</td><td>R$ ${custoReleTermico.toFixed(2)}</td></tr>
                 <tr><td>Disjuntor de Comando</td><td>${tensao === 380 ? 'Bifásico 2P' : 'Monofásico 1P'} 2A</td><td>1</td><td>R$ ${custoDisjComando.toFixed(2)}</td><td>R$ ${custoDisjComando.toFixed(2)}</td></tr>
             `;
 
-            // --- CÁLCULO DO TOTAL GERAL ---
-            const totalForca = 
-                disj.custo + 
-                (cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores));
-
-            const totalComando = 
-                (custoBotoeira * qtdEmergencia) + 
-                (custoBotoeira * qtdBotoeiraLiga) + 
-                (custoBotoeira * qtdBotoeiraDesliga) + 
-                (custoSinalizacao * mat.sinalizacoes) + 
-                custoReleTermico + 
-                custoDisjComando;
-
+            // --- Totais ---
+            const totalForca = disj.custo + (cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores));
+            const totalComando = (custoBotoeira * qtdEmergencia) + (custoBotoeira * qtdBotoeiraLiga) + (custoBotoeira * qtdBotoeiraDesliga) + (custoSinalizacao * mat.sinalizacoes) + custoReleTermico + custoDisjComando;
             const totalGeral = totalForca + totalComando;
 
-            // Adiciona linha de total no final de cada tabela
             tbodyForca.innerHTML += `
-                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                <tr style="font-weight: bold; background-color: #e8f5e9;">
                     <td colspan="3">SUBTOTAL FORÇA</td>
                     <td colspan="2">R$ ${totalForca.toFixed(2)}</td>
                 </tr>
             `;
 
             tbodyComando.innerHTML += `
-                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                <tr style="font-weight: bold; background-color: #e3f2fd;">
                     <td colspan="3">SUBTOTAL COMANDO</td>
                     <td colspan="2">R$ ${totalComando.toFixed(2)}</td>
                 </tr>
             `;
 
-            // Adiciona total geral abaixo das tabelas
-            const resultadoDiv = document.getElementById('resultado');
-            let totalGeralEl = document.getElementById('totalGeral');
-            if (!totalGeralEl) {
-                totalGeralEl = document.createElement('div');
-                totalGeralEl.id = 'totalGeral';
-                totalGeralEl.style = 'margin-top: 20px; padding: 15px; background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 5px; font-size: 1.2em; text-align: right;';
-                resultadoDiv.appendChild(totalGeralEl);
-            }
-            totalGeralEl.innerHTML = `<strong>TOTAL GERAL DO PAINEL: R$ ${totalGeral.toFixed(2)}</strong>`;
+            document.getElementById('totalGeral').innerHTML = `TOTAL GERAL DO PAINEL: R$ ${totalGeral.toFixed(2)}`;
 
             // --- Sinalizações ---
             const listaSig = document.getElementById('listaSinalizacoes');
