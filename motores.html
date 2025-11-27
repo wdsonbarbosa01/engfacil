@@ -3,32 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dimensionamento de Componentes para Motores Trifásicos EM 1 MINUTO</title>
+    <title>Dimensionamento de Motores Trifásicos WEG - Com Queda de Tensão</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        form { max-width: 400px; }
-        label { display: block; margin: 10px 0 5px; }
-        input, select { width: 100%; padding: 8px; margin-bottom: 10px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
-        #resultado { margin-top: 20px; border: 1px solid #ddd; padding: 15px; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
+        h1 { color: #2c3e50; text-align: center; }
+        form { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1em; }
+        button { margin-top: 20px; padding: 12px 25px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1.1em; }
+        button:hover { background: #219653; }
+        #resultado { margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; }
         table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         th { background-color: #f2f2f2; }
-        .cabo-aviso { color: #d32f2f; font-weight: bold; }
-        .total-section { margin: 25px 0; padding: 15px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; font-size: 1.3em; text-align: center; font-weight: bold; color: #e65100; }
+        .cabo-aviso { color: #d35400; font-weight: bold; }
+        .total-section { margin: 30px 0; padding: 20px; background: #e8f5e8; border: 2px solid #27ae60; border-radius: 10px; text-align: center; font-size: 1.4em; font-weight: bold; color: #27ae60; }
+        #alertaPartida { margin: 20px auto; padding: 20px; background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 10px; text-align: center; max-width: 600px; }
     </style>
 </head>
 <body>
-    <h1>Dimensionamento de Componentes para Motores Trifásicos <span style="color: red;">EM 1 MINUTO</span> (Referencia WEG)</h1>
+    <h1>Dimensionamento de Motores Trifásicos WEG <span style="color: red;">EM 1 MINUTO</span></h1>
+
     <form id="formMotor">
         <label for="potencia">Potência do Motor (HP):</label>
-        <input type="number" id="potencia" min="0.5" max="100" step="0.5" value="5" required>
+        <input type="number" id="potencia" min="0.5" max="100" step="0.5" value="10" required>
 
         <label for="tensao">Tensão de Ligação (V):</label>
         <select id="tensao" required>
             <option value="127">127 V</option>
             <option value="220">220 V</option>
-            <option value="380">380 V</option>
+            <option value="380" selected>380 V</option>
         </select>
 
         <label for="tipoLigacao">Tipo de Ligação:</label>
@@ -39,40 +43,26 @@
             <option value="estrela_triangulo_reversao">Estrela-Triângulo com Reversão</option>
         </select>
 
+        <label for="distancia">Distância até o motor (metros) - opcional:</label>
+        <input type="number" id="distancia" min="0" step="1" placeholder="Ex: 80 (deixe vazio se < 30m)">
+
         <button type="submit">Calcular Dimensionamento</button>
     </form>
 
-    <div id="resultado" style="display: none;">
+    <div id="resultado">
         <h2>Resultados do Dimensionamento</h2>
-        <p><strong>Tensão:</strong> <span id="tensaoSelecionada"></span>V | <strong>FLA:</strong> <span id="flaValor"></span> A</p>
+        <p><strong>Tensão:</strong> <span id="tensaoSelecionada"></span>V | 
+           <strong>FLA:</strong> <span id="flaValor"></span> A</p>
 
         <h3>Componentes de Força</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Componente</th>
-                    <th>Especificação</th>
-                    <th>Quantidade</th>
-                    <th>Custo Unit. (R$)</th>
-                    <th>Total (R$)</th>
-                </tr>
-            </thead>
-            <tbody id="tabelaForca"></tbody>
-        </table>
+        <table><thead>
+            <tr><th>Componente</th><th>Especificação</th><th>Qtd</th><th>Unit. (R$)</th><th>Total (R$)</th></tr>
+        </thead><tbody id="tabelaForca"></tbody></table>
 
         <h3>Componentes de Comando</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Componente</th>
-                    <th>Especificação</th>
-                    <th>Quantidade</th>
-                    <th>Custo Unit. (R$)</th>
-                    <th>Total (R$)</th>
-                </tr>
-            </thead>
-            <tbody id="tabelaComando"></tbody>
-        </table>
+        <table><thead>
+            <tr><th>Componente</th><th>Especificação</th><th>Qtd</th><th>Unit. (R$)</th><th>Total (R$)</th></tr>
+        </thead><tbody id="tabelaComando"></tbody></table>
 
         <div id="totalGeral" class="total-section"></div>
 
@@ -80,97 +70,81 @@
         <ul id="listaSinalizacoes"></ul>
 
         <h3>Diagrama de Ligação</h3>
-        <img id="diagramaImg" src="" alt="Diagrama de ligação" style="max-width: 100%; border: 1px solid #ccc; margin-top: 10px;">
-        <p><small>Valores baseados em catálogos WEG para especificações de motores. Preços de componentes baseados em médias de mercado brasileiro (2025). Consulte manual oficial para aplicação exata.</small></p>
+        <img id="diagramaImg" src="" alt="Diagrama" style="max-width: 100%; border: 1px solid #ccc; border-radius: 8px;">
+        
+        <p style="font-size: 0.9em; color: #7f8c8d; margin-top: 20px;">
+            Valores baseados em catálogos WEG (FLA) e preços médios do mercado brasileiro 2025.<br>
+            Cálculo de cabo considera NBR 5410 (método B1) + queda de tensão máxima 3%.
+        </p>
     </div>
 
     <script>
-        // --- Dados de Corrente (FLA) base 380V - Referência WEG ---
-        const baseFLA380 = {
-            0.5: 1.0, 1: 1.8, 1.5: 2.5, 2: 3.2, 3: 4.5, 5: 7.5,
-            7.5: 10.8, 10: 14, 15: 21, 20: 27, 25: 33, 30: 39,
-            40: 51, 50: 62, 60: 74, 75: 90, 100: 120
-        };
+        // --- Dados WEG (apenas para FLA) ---
+        const baseFLA380 = {0.5:1.0,1:1.8,1.5:2.5,2:3.2,3:4.5,5:7.5,7.5:10.8,10:14,15:21,20:27,25:33,30:39,40:51,50:62,60:74,75:90,100:120};
+        const fatorTensao = {127:380/127,220:380/220,380:1};
 
-        const fatorTensao = { 127: 380/127, 220: 380/220, 380: 1 };
+        // --- Amperagens comerciais ---
+        const ampsDisj = [6,10,16,20,25,32,40,50,63,80,100,125];
+        const ampsCont = [9,12,18,25,32,40,50,65,80,95,110];
+        const secoesCabo = [2.5,4,6,10,16,25,35];
 
-        // --- Amperagens comerciais Disjuntores (mercado BR) ---
-        const ampsDisjComerciais = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125];
-        const disjuntores = {
-            6: 'MPW 6A', 10: 'MPW 10A', 16: 'MPW 16A', 20: 'MPW 20A', 25: 'MPW 25A',
-            32: 'MPW 32A', 40: 'MPW 40A', 50: 'MPW 50A', 63: 'MPW 63A', 80: 'MPW 80A',
-            100: 'MPW 100A', 125: 'MPW 125A'
-        };
-        // Preços médios mercado BR 2025 (R$) - Ajustados de fontes como Mercado Livre, ViewTech
-        const custoDisjuntor = { 
-            6: 150, 10: 180, 16: 200, 20: 220, 25: 250, 32: 280, 40: 320, 
-            50: 400, 63: 450, 80: 550, 100: 650, 125: 750 
-        };
+        // --- Preços médios mercado BR 2025 ---
+        const precoDisj = {6:150,10:180,16:200,20:220,25:250,32:280,40:320,50:400,63:450,80:550,100:650,125:750};
+        const precoCont = {9:120,12:140,18:170,25:220,32:280,40:350,50:420,65:550,80:650,95:750,110:850};
+        const precoCaboMetro = {2.5:2.19,4:4.06,6:6.63,10:10.00,16:18.62,25:25.00,35:35.00};
+        const custoBotoeira = 45, custoLED = 25, custoRele = 150, custoDisjCmd = {127:50,220:50,380:60};
 
-        // --- Amperagens comerciais Contatores WEG ---
-        const ampsContComerciais = [9, 12, 18, 25, 32, 40, 50, 65, 80, 95, 110];
-        const contatores = { 
-            9: 'CWB 9A', 12: 'CWB 12A', 18: 'CWB 18A', 25: 'CWB 25A', 32: 'CWB 32A', 
-            40: 'CWB 40A', 50: 'CWB 50A', 65: 'CWB 65A', 80: 'CWB 80A', 95: 'CWB 95A', 110: 'CWB 110A' 
-        };
-        // Preços médios mercado BR 2025 (R$) - Ajustados de Condufio, ALR
-        const custoContator = { 
-            9: 120, 12: 140, 18: 170, 25: 220, 32: 280, 40: 350, 50: 420, 65: 550, 80: 650, 95: 750, 110: 850 
-        };
-
-        // --- Cabos (mercado BR) ---
-        const cabos = { 1.5: '1,5 mm²', 2.5: '2,5 mm²', 4: '4 mm²', 6: '6 mm²', 10: '10 mm²', 16: '16 mm²', 25: '25 mm²', 35: '35 mm²' };
-        // Preços médios por metro 2025 (R$) - Ajustados de Eletrica Bahiana, Andra
-        const custoCabo = { 1.5: 1.57, 2.5: 2.19, 4: 4.06, 6: 6.63, 10: 10.00, 16: 18.62, 25: 25.00, 35: 35.00 };
-
-        // --- Outros custos (mercado BR) ---
-        const custoBotoeira = 45; // Botoeira 22mm sem retenção (Mercado Livre)
-        const custoSinalizacao = 25; // LED 24V (ON Eletrica, BHS)
-        const custoReleTermico = 150; // Relé RW médio (ViewTech, ILG)
-        const custoDisjuntorComando = { 127: 50, 220: 50, 380: 60 }; // Auxiliar 1P/2P 2A (Loja Eletrica)
-
-        // --- Funções de seleção comercial ---
-        function getDisjuntorComercial(FLA) {
-            const ampNecessaria = FLA * 1.25; // Fator para motor
-            const ampEscolhida = ampsDisjComerciais.find(amp => amp >= ampNecessaria) || 125;
-            return { valor: ampEscolhida, modelo: disjuntores[ampEscolhida], custo: custoDisjuntor[ampEscolhida] };
+        // --- Funções ---
+        function proximoValor(arr, valor) {
+            return arr.find(v => v >= valor) || arr[arr.length-1];
         }
 
-        function getContatorComercial(FLA) {
-            const ampEscolhida = ampsContComerciais.find(amp => amp >= FLA) || 110;
-            return { valor: ampEscolhida, modelo: contatores[ampEscolhida], custo: custoContator[ampEscolhida] };
+        function calcularSecaoPorQuedaTensao(FLA, tensao, distancia) {
+            if (!distancia || distancia < 10) return null;
+            const V = tensao;
+            const rho = 0.0175; // cobre 75°C
+            const deltaMax = 0.03;
+            const Smin = (Math.sqrt(3) * FLA * rho * 2 * distancia) / (V * deltaMax);
+            return Math.max(2.5, Smin);
         }
 
-        function getCaboComercial(FLA) {
-            const amp = FLA * 1.25;
-            let mm2 = 2.5; // Mínimo por norma
-            if (amp > 16) mm2 = 2.5;
-            if (amp > 21) mm2 = 4;
-            if (amp > 28) mm2 = 6;
-            if (amp > 36) mm2 = 10;
-            if (amp > 47) mm2 = 16;
-            if (amp > 62) mm2 = 25;
-            if (amp > 80) mm2 = 35;
-            const aviso = mm2 < 2.5 ? ' <span class="cabo-aviso">(Norma: mínimo 2,5 mm² para força)</span>' : '';
-            return { mm2, modelo: cabos[mm2], custo: custoCabo[mm2], aviso };
+        function getCaboComercial(FLA, tensao, distancia = null) {
+            const Icorrente = FLA * 1.25;
+            const capacidades = {2.5:24,4:32,6:41,10:57,16:76,25:101,35:125};
+            let secaoCorrente = 2.5;
+            for (const s in capacidades) {
+                if (Icorrente <= capacidades[s]) { secaoCorrente = parseFloat(s); break; }
+            }
+
+            const secaoQueda = calcularSecaoPorQuedaTensao(FLA, tensao, distancia);
+            const secaoFinal = secaoQueda ? Math.max(secaoCorrente, secaoQueda) : secaoCorrente;
+            const secaoEscolhida = proximoValor(secoesCabo, secaoFinal);
+
+            const aviso = distancia && secaoQueda > secaoCorrente
+                ? ` <span class="cabo-aviso">(Queda de tensão ${distancia}m → seção aumentada para ${secaoEscolhida} mm²)</span>`
+                : '';
+
+            return { mm2: secaoEscolhida, modelo: `${secaoEscolhida} mm²`, custo: precoCaboMetro[secaoEscolhida], aviso };
         }
 
-        // --- Materiais por tipo ---
+        function alertaPartidaDireta(hp, tipo) {
+            if (hp < 7.5) return null;
+            if (tipo === 'direta') {
+                return { msg: "Ligação direta não recomendada acima de 7,5 CV", sugestao: "estrela_triangulo" };
+            }
+            if (tipo === 'direta_reversao') {
+                return { msg: "Ligação direta com reversão não recomendada acima de 7,5 CV", sugestao: "estrela_triangulo_reversao" };
+            }
+            return null;
+        }
+
         const materiais = {
-            direta: { contatores: 1, sinalizacoes: 1, botoeirasLiga: 1 },
-            direta_reversao: { contatores: 2, sinalizacoes: 2, botoeirasLiga: 2 },
-            estrela_triangulo: { contatores: 3, sinalizacoes: 2, botoeirasLiga: 1 },
-            estrela_triangulo_reversao: { contatores: 6, sinalizacoes: 3, botoeirasLiga: 2 }
+            direta: {cont:1, liga:1, sig:1},
+            direta_reversao: {cont:2, liga:2, sig:2},
+            estrela_triangulo: {cont:3, liga:1, sig:2},
+            estrela_triangulo_reversao: {cont:6, liga:2, sig:3}
         };
 
-        const descSinalizacao = {
-            direta: ['Motor ligado'],
-            direta_reversao: ['Sentido 1', 'Sentido 2'],
-            estrela_triangulo: ['Em estrela', 'Em triângulo'],
-            estrela_triangulo_reversao: ['Estrela', 'Triângulo sentido 1', 'Triângulo sentido 2']
-        };
-
-        // --- Diagramas ---
         const diagramas = {
             direta: 'https://wdsonbarbosa01.github.io/engfacil/PARTIDA%20DIRETA.png',
             direta_reversao: 'https://via.placeholder.com/600x400?text=Direta+com+Revers%C3%A3o',
@@ -178,76 +152,61 @@
             estrela_triangulo_reversao: 'https://via.placeholder.com/600x400?text=Estrela-Tri%C3%A2ngulo+com+Revers%C3%A3o'
         };
 
-        // --- Cálculo ---
         document.getElementById('formMotor').addEventListener('submit', function(e) {
             e.preventDefault();
 
             const hp = parseFloat(document.getElementById('potencia').value);
             const tensao = parseInt(document.getElementById('tensao').value);
             const tipo = document.getElementById('tipoLigacao').value;
+            const distancia = parseFloat(document.getElementById('distancia').value) || null;
 
             const flaBase = baseFLA380[hp] || (hp * 0.746 * 1000) / (Math.sqrt(3) * 380 * 0.85 * 0.88);
             const FLA = flaBase * fatorTensao[tensao];
+
+            // Alerta partida direta
+            const alerta = alertaPartidaDireta(hp, tipo);
+            const alertaDiv = document.getElementById('alertaPartida');
+            if (alertaDiv) alertaDiv.remove();
+            if (alerta) {
+                const div = document.createElement('div');
+                div.id = 'alertaPartida';
+                div.innerHTML = `<p>${alerta.msg}</p><p><strong>Recomendado: ${alerta.sugestao.replace('_', ' ')}</strong></p>
+                    <button onclick="document.getElementById('tipoLigacao').value='${alerta.sugestao}'; this.parentElement.remove(); document.getElementById('formMotor').dispatchEvent(new Event('submit'));">
+                        Mudar automaticamente
+                    </button>`;
+                document.getElementById('formMotor').after(div);
+            }
+
+            const disj = {valor: proximoValor(ampsDisj, FLA*1.25), custo: precoDisj[proximoValor(ampsDisj, FLA*1.25)]};
+            const cont = {valor: proximoValor(ampsCont, FLA), custo: precoCont[proximoValor(ampsCont, FLA)]};
+            const cabo = getCaboComercial(FLA, tensao, distancia);
             const mat = materiais[tipo];
 
-            const disj = getDisjuntorComercial(FLA);
-            const cont = getContatorComercial(FLA);
-            const cabo = getCaboComercial(FLA);
-            const custoDisjComando = custoDisjuntorComando[tensao] || 60;
-
-            // Quantidade botões liga
-            let qtdBotoeiraLiga = mat.botoeirasLiga;
-            const qtdBotoeiraDesliga = 1;
-            const qtdEmergencia = 1;
-
-            // --- Tabela Força ---
-            const tbodyForca = document.getElementById('tabelaForca');
-            tbodyForca.innerHTML = `
-                <tr><td>Disjuntor Motor</td><td>${disj.modelo} (Tripolar)</td><td>1</td><td>R$ ${disj.custo.toFixed(2)}</td><td>R$ ${disj.custo.toFixed(2)}</td></tr>
-                <tr><td>Contator</td><td>${cont.modelo} (AC-3 ${cont.valor}A)</td><td>${tipo.includes('estrela') ? 3 : mat.contatores}</td><td>R$ ${cont.custo.toFixed(2)}</td><td>R$ ${(cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores)).toFixed(2)}</td></tr>
+            // Tabelas
+            document.getElementById('tabelaForca').innerHTML = `
+                <tr><td>Disjuntor Motor</td><td>MPW ${disj.valor}A</td><td>1</td><td>R$ ${disj.custo.toFixed(2)}</td><td>R$ ${disj.custo.toFixed(2)}</td></tr>
+                <tr><td>Contator</td><td>CWB ${cont.valor}A</td><td>${tipo.includes('estrela')?3:mat.cont}</td><td>R$ ${cont.custo.toFixed(2)}</td><td>R$ ${(cont.custo*(tipo.includes('estrela')?3:mat.cont)).toFixed(2)}</td></tr>
                 <tr><td>Cabo de Força</td><td>${cabo.modelo}${cabo.aviso}</td><td>3F + T</td><td>R$ ${cabo.custo.toFixed(2)}/m</td><td>—</td></tr>
             `;
 
-            // --- Tabela Comando ---
-            const tbodyComando = document.getElementById('tabelaComando');
-            tbodyComando.innerHTML = `
-                <tr><td>Botoeira de Emergência</td><td>Com retenção (vermelha)</td><td>${qtdEmergencia}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * qtdEmergencia).toFixed(2)}</td></tr>
-                <tr><td>Botoeira Liga (NA)</td><td>Sem retenção (verde)</td><td>${qtdBotoeiraLiga}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * qtdBotoeiraLiga).toFixed(2)}</td></tr>
-                <tr><td>Botoeira Desliga (NF)</td><td>Sem retenção (vermelha)</td><td>${qtdBotoeiraDesliga}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira * qtdBotoeiraDesliga).toFixed(2)}</td></tr>
-                <tr><td>Sinalizações</td><td>LED 24V</td><td>${mat.sinalizacoes}</td><td>R$ ${custoSinalizacao.toFixed(2)}</td><td>R$ ${(custoSinalizacao * mat.sinalizacoes).toFixed(2)}</td></tr>
-                <tr><td>Relé Térmico</td><td>RW Ajuste ${FLA.toFixed(1)}A</td><td>1</td><td>R$ ${custoReleTermico.toFixed(2)}</td><td>R$ ${custoReleTermico.toFixed(2)}</td></tr>
-                <tr><td>Disjuntor de Comando</td><td>${tensao === 380 ? 'Bifásico 2P' : 'Monofásico 1P'} 2A</td><td>1</td><td>R$ ${custoDisjComando.toFixed(2)}</td><td>R$ ${custoDisjComando.toFixed(2)}</td></tr>
+            document.getElementById('tabelaComando').innerHTML = `
+                <tr><td>Botoeira Emergência</td><td>Com retenção</td><td>1</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${custoBotoeira.toFixed(2)}</td></tr>
+                <tr><td>Botoeira Liga (NA)</td><td>Sem retenção</td><td>${mat.liga}</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${(custoBotoeira*mat.liga).toFixed(2)}</td></tr>
+                <tr><td>Botoeira Desliga (NF)</td><td>Sem retenção</td><td>1</td><td>R$ ${custoBotoeira.toFixed(2)}</td><td>R$ ${custoBotoeira.toFixed(2)}</td></tr>
+                <tr><td>Sinalização LED</td><td>24V</td><td>${mat.sig}</td><td>R$ ${custoLED.toFixed(2)}</td><td>R$ ${(custoLED*mat.sig).toFixed(2)}</td></tr>
+                <tr><td>Relé Térmico</td><td>RW ${FLA.toFixed(1)}A</td><td>1</td><td>R$ ${custoRele.toFixed(2)}</td><td>R$ ${custoRele.toFixed(2)}</td></tr>
+                <tr><td>Disjuntor Comando</td><td>${tensao===380?'Bifásico':'Monofásico'} 2A</td><td>1</td><td>R$ ${(custoDisjCmd[tensao]||60).toFixed(2)}</td><td>R$ ${(custoDisjCmd[tensao]||60).toFixed(2)}</td></tr>
             `;
 
-            // --- Totais ---
-            const totalForca = disj.custo + (cont.custo * (tipo.includes('estrela') ? 3 : mat.contatores));
-            const totalComando = (custoBotoeira * qtdEmergencia) + (custoBotoeira * qtdBotoeiraLiga) + (custoBotoeira * qtdBotoeiraDesliga) + (custoSinalizacao * mat.sinalizacoes) + custoReleTermico + custoDisjComando;
-            const totalGeral = totalForca + totalComando;
+            const totalForca = disj.custo + cont.custo * (tipo.includes('estrela')?3:mat.cont);
+            const totalComando = custoBotoeira*(1 + mat.liga + 1) + custoLED*mat.sig + custoRele + (custoDisjCmd[tensao]||60);
+            document.getElementById('totalGeral').innerHTML = `TOTAL GERAL DO PAINEL: R$ ${(totalForca + totalComando).toFixed(2)}`;
 
-            tbodyForca.innerHTML += `
-                <tr style="font-weight: bold; background-color: #e8f5e9;">
-                    <td colspan="3">SUBTOTAL FORÇA</td>
-                    <td colspan="2">R$ ${totalForca.toFixed(2)}</td>
-                </tr>
-            `;
+            document.getElementById('listaSinalizacoes').innerHTML = 
+                tipo.includes('direta_reversao') ? '<li>Sentido 1</li><li>Sentido 2</li>' :
+                tipo.includes('estrela') ? '<li>Em estrela</li><li>Em triângulo</li>' : '<li>Motor ligado</li>';
 
-            tbodyComando.innerHTML += `
-                <tr style="font-weight: bold; background-color: #e3f2fd;">
-                    <td colspan="3">SUBTOTAL COMANDO</td>
-                    <td colspan="2">R$ ${totalComando.toFixed(2)}</td>
-                </tr>
-            `;
-
-            document.getElementById('totalGeral').innerHTML = `TOTAL GERAL DO PAINEL: R$ ${totalGeral.toFixed(2)}`;
-
-            // --- Sinalizações ---
-            const listaSig = document.getElementById('listaSinalizacoes');
-            listaSig.innerHTML = descSinalizacao[tipo].map(s => `<li>${s}</li>`).join('');
-
-            // --- Diagrama ---
-            document.getElementById('diagramaImg').src = diagramas[tipo] || 'https://via.placeholder.com/600x400?text=Diagrama+Indispon%C3%ADvel';
-
-            // --- Info ---
+            document.getElementById('diagramaImg').src = diagramas[tipo];
             document.getElementById('tensaoSelecionada').textContent = tensao;
             document.getElementById('flaValor').textContent = FLA.toFixed(1);
             document.getElementById('resultado').style.display = 'block';
